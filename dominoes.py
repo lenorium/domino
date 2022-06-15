@@ -3,6 +3,9 @@ import random
 MIN_WEIGHT = 0
 MAX_WEIGHT = 6
 PIECES_PER_PLAYER = 7
+COMPUTER = 'computer'
+HUMAN = 'human'
+
 snake = []
 
 
@@ -23,39 +26,44 @@ def draw(stock):
     return reserved
 
 
-# To start the game, players determine the starting piece.
-# The player with the highest double ([6,6] or [5,5] for example)
-# will donate that domino as a starting piece for the game.
-# After doing so, their opponent will start the game by going first.
-def start_game(computer, human):
+def start(players):
+    """
+    To start the game, players determine the starting piece.
+    The player with the highest double ([6,6] or [5,5] for example)
+    will donate that domino as a starting piece for the game.
+    After doing so, their opponent will start the game by going first.
+    """
     max_double = [MAX_WEIGHT, MAX_WEIGHT]
+    computer = players[COMPUTER]
+    human = players[HUMAN]
 
     if max_double in computer:
-        go(computer, max_double)
-        return human
+        move(computer, computer.index(max_double))
+        return HUMAN
 
     if max_double in human:
-        go(human, max_double)
-        return computer
+        move(human, human.index(max_double))
+        return COMPUTER
 
     c_doubles = find_double_dominoes(computer)
     h_doubles = find_double_dominoes(human)
 
     if len(c_doubles) == 0:
-        go(human, max(human))
-        return computer
+        move(human, human.index(max(h_doubles)))
+        return COMPUTER
 
     if len(h_doubles) == 0:
-        go(computer, max(computer))
-        return human
+        move(computer, computer.index(max(c_doubles)))
+        return HUMAN
 
     max_computer_double = max(c_doubles)
     max_human_double = max(h_doubles)
     if max_computer_double > max_human_double:
-        go(computer, max_computer_double)
-        return human
+        move(computer, computer.index(max_computer_double))
+        return HUMAN
     else:
-        go(human, max_human_double)
+        move(human, human(max_human_double))
+        return COMPUTER
 
 
 def find_double_dominoes(pieces):
@@ -73,21 +81,60 @@ def has_double_dominoes(domino_set):
     return False
 
 
-def go(player, piece: list):
-    snake.append(piece)
-    player.remove(piece)
+def humans_turn(human_set: list):
+    while True:
+        try:
+            domino_number = int(input())
+        except ValueError:
+            print('Invalid input. Please try again.')
+            continue
+
+        if abs(domino_number) > len(human_set):
+            print('Invalid input. Please try again.')
+            continue
+
+        left_side = domino_number < 0
+        if domino_number != 0:
+            domino_number = abs(domino_number) - 1
+        move(human_set, domino_number, left_side)
+        break
+    return COMPUTER
 
 
-def print_status(stock, computer, human, next_player):
+def move(player_set, domino_number, left_side=False):
+    """
+    To make a move, the player has to specify the action they want to take.
+    In this project, the actions are represented by integer numbers in the following manner:
+    {side_of_the_snake (+/-), domino_number (integer)} or {0}.
+    For example:
+        -6 : Take the sixth domino and place it on the left side of the snake.
+        6 : Take the sixth domino and place it on the right side of the snake.
+        0 : Take an extra piece from the stock (if it's not empty) and
+        skip a turn or simply skip a turn if the stock is already empty by this point.
+    """
+    if domino_number == 0:
+        print('pass')
+        return
+
+    if left_side:
+        snake.insert(0, player_set[domino_number])
+    else:
+        snake.append(player_set[domino_number])
+    player_set.remove(player_set[domino_number])
+
+
+def print_status(stock, players, next_player: str):
     print('=' * 70)
-    print(f'Stock size: {len(stock)}')
-    print(f'Computer pieces: {len(computer)}\n')
+    # print(f'Stock size: {len(stock)}')
+    print(f'Stock size: {stock}')
+    # print(f'Computer pieces: {len(players[COMPUTER])}\n')
+    print(f'Computer pieces: {players[COMPUTER]}\n')
     print(*snake)
     print(f'\nYour pieces:')
-    for i, p in enumerate(human):
+    for i, p in enumerate(players[HUMAN]):
         print(f'{i + 1}: {p}')
 
-    if next_player == computer:
+    if next_player == COMPUTER:
         status = 'Computer is about to make a move. Press Enter to continue...'
     else:
         status = "It's your turn to make a move. Enter your command."
@@ -95,16 +142,20 @@ def print_status(stock, computer, human, next_player):
 
 
 def play():
-    # Domino piece is double if the two numbers written on it are equal
-    # If no one has a double domino, the pieces are reshuffled and redistributed.
+    """
+    Domino piece is double if the two numbers written on it are equal
+    If no one has a double domino, the pieces are reshuffled and redistributed.
+    """
     while True:
         stock = generate_domino_set()
-        computer = draw(stock)
-        human = draw(stock)
-        if has_double_dominoes(computer) or has_double_dominoes(human):
+        players = {COMPUTER: draw(stock),
+                   HUMAN: draw(stock)}
+        if has_double_dominoes(players[COMPUTER]) or has_double_dominoes(players[HUMAN]):
             break
-    next_player = start_game(computer, human)
-    print_status(stock, computer, human, next_player)
+    next_player = start(players)
+    print_status(stock, players, next_player)
+    next_player = humans_turn(players[HUMAN])
+    print_status(stock, players, next_player)
 
 
 if __name__ == '__main__':
