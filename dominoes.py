@@ -13,8 +13,7 @@ def generate_domino_set():
     stock = []
     for i in range(MIN_WEIGHT, MAX_WEIGHT + 1):
         for j in range(i, MAX_WEIGHT + 1):
-            piece = [i, j]
-            stock.append(piece)
+            stock.append([i, j])
     random.shuffle(stock)
     return stock
 
@@ -33,45 +32,28 @@ def start(players):
     will donate that domino as a starting piece for the game.
     After doing so, their opponent will start the game by going first.
     """
-    max_double = [MAX_WEIGHT, MAX_WEIGHT]
     computer = players[COMPUTER]
     human = players[HUMAN]
 
-    if max_double in computer:
-        move(computer, computer.index(max_double))
-        return HUMAN
+    max_computer_double = find_max_double_domino(computer)
+    max_human_double = find_max_double_domino(human)
 
-    if max_double in human:
-        move(human, human.index(max_double))
-        return COMPUTER
-
-    c_doubles = find_double_dominoes(computer)
-    h_doubles = find_double_dominoes(human)
-
-    if len(c_doubles) == 0:
-        move(human, human.index(max(h_doubles)))
-        return COMPUTER
-
-    if len(h_doubles) == 0:
-        move(computer, computer.index(max(c_doubles)))
-        return HUMAN
-
-    max_computer_double = max(c_doubles)
-    max_human_double = max(h_doubles)
     if max_computer_double > max_human_double:
         move(computer, computer.index(max_computer_double))
         return HUMAN
     else:
-        move(human, human(max_human_double))
+        move(human, human.index(max_human_double))
         return COMPUTER
 
 
-def find_double_dominoes(pieces):
+def find_max_double_domino(pieces):
     doubles = []
     for piece in pieces:
         if piece[0] == piece[1]:
             doubles.append(piece)
-    return doubles
+    if len(doubles) == 0:
+        return []
+    return max(doubles)
 
 
 def has_double_dominoes(domino_set):
