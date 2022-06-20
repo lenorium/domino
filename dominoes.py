@@ -3,6 +3,7 @@ import random
 MIN_WEIGHT = 0
 MAX_WEIGHT = 6
 PIECES_PER_PLAYER = 7
+END_GAME_COUNTER = 8
 COMPUTER = 'computer'
 HUMAN = 'human'
 
@@ -119,27 +120,39 @@ def print_status(players):
         print(f'{i + 1}: {p}')
 
 
-def end_game():
-    return snake[0][0] == snake[-1][-1] and appear_all_times(snake[0][0])
+def end_game(players, next_player):
+    """
+    The end-game condition can be achieved in two ways:
 
+    - One of the players runs out of pieces. The first player to do so is considered a winner.
+    - The numbers on the ends of the snake are identical and appear within the snake 8 times. 
+       For example, the snake below will satisfy this condition:
+      [5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5],[5,3],[3,6],[6,5]
+      These two snakes, however, will not:
+      [5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5]
+      [6,5],[5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5],[5,3],[3,1]
+      If this condition is satisfied, it is no longer possible to go on with this snake.
+      Even after emptying the stock, no player will have the necessary piece.
+      Essentially, the game has come to a permanent stop, so we have a draw.
+    """
+    if len(players[next_player]) == 0:
+        winner = 'The computer won' if next_player == COMPUTER else 'You won'
+        print(f'Status: The game is over. {winner}!')
+        return True
 
-def appear_all_times(number):
-    counter = 8
-    for piece in snake:
-        for num in piece:
-            if num == number:
-                counter -= 1
-            if counter == 0:
-                return True
+    if snake[0][0] == snake[-1][-1] and \
+            sum(num == snake[0][0] for piece in snake for num in piece) == END_GAME_COUNTER:
+        print("Status: The game is over. It's a draw!")
+        return True
     return False
 
 
 def play():
-    global stock
     """
     Domino piece is double if the two numbers written on it are equal
     If no one has a double domino, the pieces are reshuffled and redistributed.
     """
+    global stock
     while True:
         stock = generate_domino_set()
         players = {COMPUTER: draw(), HUMAN: draw()}
@@ -152,29 +165,7 @@ def play():
         print_status(players)
         next_player = move(next_player, players[next_player])
 
-        """
-        The end-game condition can be achieved in two ways:
-        
-         - One of the players runs out of pieces. The first player to do so is considered a winner.
-         - The numbers on the ends of the snake are identical and appear within the snake 8 times. 
-            For example, the snake below will satisfy this condition:
-            [5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5],[5,3],[3,6],[6,5]
-            These two snakes, however, will not:
-            [5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5]
-            [6,5],[5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5],[5,3],[3,1]
-            If this condition is satisfied, it is no longer possible to go on with this snake. 
-            Even after emptying the stock, no player will have the necessary piece. 
-            Essentially, the game has come to a permanent stop, so we have a draw.
-        """
-        if len(players[next_player]) == 0:
-            if next_player == COMPUTER:
-                print('Status: The game is over. The computer won!')
-            else:
-                print('Status: The game is over. You won!')
-            break
-
-        if end_game():
-            print("Status: The game is over. It's a draw!")
+        if end_game(players, next_player):
             break
 
 
