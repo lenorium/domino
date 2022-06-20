@@ -61,14 +61,14 @@ def has_double_dominoes(domino_set):
 
 def move(player: str, dominoes: list):
     if player == COMPUTER:
-        input('Status: Computer is about to make a move. Press Enter to continue...')
+        input('Status: Computer is about to make a move. Press Enter to continue...\n')
         piece = random.choice(dominoes)
         update_dominoes_sets(dominoes, piece)
         return HUMAN
     if player == HUMAN:
         while True:
             try:
-                index = int(input("Status: It's your turn to make a move. Enter your command."))
+                index = int(input("Status: It's your turn to make a move. Enter your command.\n"))
             except ValueError:
                 print('Invalid input. Please try again.')
                 continue
@@ -110,14 +110,18 @@ def update_dominoes_sets(player_set, piece, skip=False, left_side=False):
 
 def print_status(players):
     print('=' * 70)
-    # print(f'Stock size: {len(stock)}')
-    print(f'Stock size: {stock}')
-    # print(f'Computer pieces: {len(players[COMPUTER])}\n')
-    print(f'Computer pieces: {players[COMPUTER]}\n')
-    print(*snake)
+    print(f'Stock size: {len(stock)}')
+    # print(f'Stock size: {stock}')
+    print(f'Computer pieces: {len(players[COMPUTER])}\n')
+    # print(f'Computer pieces: {players[COMPUTER]}\n')
+    if len(snake) > 6:
+        print(*snake[:3], '...', *snake[-3:])
+    else:
+        print(*snake)
     print(f'\nYour pieces:')
     for i, p in enumerate(players[HUMAN]):
         print(f'{i + 1}: {p}')
+    print()
 
 
 def end_game(players, next_player):
