@@ -3,14 +3,15 @@ import random
 MIN_WEIGHT = 0
 MAX_WEIGHT = 6
 PIECES_PER_PLAYER = 7
+END_GAME_COUNTER = 8
 COMPUTER = 'computer'
 HUMAN = 'human'
 
 snake = []
+stock = []
 
 
 def generate_domino_set():
-    stock = []
     for i in range(MIN_WEIGHT, MAX_WEIGHT + 1):
         for j in range(i, MAX_WEIGHT + 1):
             stock.append([i, j])
@@ -18,7 +19,7 @@ def generate_domino_set():
     return stock
 
 
-def draw(stock):
+def draw():
     reserved = random.sample(stock, PIECES_PER_PLAYER)
     for piece in reserved:
         stock.remove(piece)
@@ -39,10 +40,10 @@ def start(players):
     max_human_double = find_max_double_domino(human)
 
     if max_computer_double > max_human_double:
-        move(computer, computer.index(max_computer_double))
+        update_dominoes_sets(computer, max_computer_double)
         return HUMAN
     else:
-        move(human, human.index(max_human_double))
+        update_dominoes_sets(human, max_human_double)
         return COMPUTER
 
 
@@ -51,39 +52,38 @@ def find_max_double_domino(pieces):
     for piece in pieces:
         if piece[0] == piece[1]:
             doubles.append(piece)
-    if len(doubles) == 0:
-        return []
-    return max(doubles)
+    return [] if len(doubles) == 0 else max(doubles)
 
 
 def has_double_dominoes(domino_set):
-    for piece in domino_set:
-        if piece[0] == piece[1]:
-            return True
-    return False
+    return any(piece[0] == piece[1] for piece in domino_set)
 
 
-def humans_turn(human_set: list):
-    while True:
-        try:
-            domino_number = int(input())
-        except ValueError:
-            print('Invalid input. Please try again.')
-            continue
+def move(player: str, dominoes: list):
+    if player == COMPUTER:
+        input('Status: Computer is about to make a move. Press Enter to continue...\n')
+        piece = random.choice(dominoes)
+        update_dominoes_sets(dominoes, piece)
+        return HUMAN
+    if player == HUMAN:
+        while True:
+            try:
+                index = int(input("Status: It's your turn to make a move. Enter your command.\n"))
+            except ValueError:
+                print('Invalid input. Please try again.')
+                continue
 
-        if abs(domino_number) > len(human_set):
-            print('Invalid input. Please try again.')
-            continue
+            if abs(index) > len(dominoes):
+                print('Invalid input. Please try again.')
+                continue
 
-        left_side = domino_number < 0
-        if domino_number != 0:
-            domino_number = abs(domino_number) - 1
-        move(human_set, domino_number, left_side)
-        break
-    return COMPUTER
+            update_dominoes_sets(dominoes, dominoes[abs(index) - 1], index == 0, index < 0)
+
+            break
+        return COMPUTER
 
 
-def move(player_set, domino_number, left_side=False):
+def update_dominoes_sets(player_set, piece, skip=False, left_side=False):
     """
     To make a move, the player has to specify the action they want to take.
     In this project, the actions are represented by integer numbers in the following manner:
@@ -94,33 +94,61 @@ def move(player_set, domino_number, left_side=False):
         0 : Take an extra piece from the stock (if it's not empty) and
         skip a turn or simply skip a turn if the stock is already empty by this point.
     """
-    if domino_number == 0:
-        print('pass')
+    if skip:
+        if len(snake) != 0:
+            index = random.choice(stock)
+            player_set.append(index)
+            stock.remove(index)
         return
 
     if left_side:
-        snake.insert(0, player_set[domino_number])
+        snake.insert(0, piece)
     else:
-        snake.append(player_set[domino_number])
-    player_set.remove(player_set[domino_number])
+        snake.append(piece)
+    player_set.remove(piece)
 
 
-def print_status(stock, players, next_player: str):
+def print_status(players):
     print('=' * 70)
-    # print(f'Stock size: {len(stock)}')
-    print(f'Stock size: {stock}')
-    # print(f'Computer pieces: {len(players[COMPUTER])}\n')
-    print(f'Computer pieces: {players[COMPUTER]}\n')
-    print(*snake)
+    print(f'Stock size: {len(stock)}')
+    # print(f'Stock size: {stock}')
+    print(f'Computer pieces: {len(players[COMPUTER])}\n')
+    # print(f'Computer pieces: {players[COMPUTER]}\n')
+    if len(snake) > 6:
+        print(*snake[:3], '...', *snake[-3:])
+    else:
+        print(*snake)
     print(f'\nYour pieces:')
     for i, p in enumerate(players[HUMAN]):
         print(f'{i + 1}: {p}')
+    print()
 
-    if next_player == COMPUTER:
-        status = 'Computer is about to make a move. Press Enter to continue...'
-    else:
-        status = "It's your turn to make a move. Enter your command."
-    print(f'\nStatus: {status}')
+
+def end_game(players, next_player):
+    """
+    The end-game condition can be achieved in two ways:
+
+    - One of the players runs out of pieces. The first player to do so is considered a winner.
+    - The numbers on the ends of the snake are identical and appear within the snake 8 times. 
+       For example, the snake below will satisfy this condition:
+      [5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5],[5,3],[3,6],[6,5]
+      These two snakes, however, will not:
+      [5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5]
+      [6,5],[5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5],[5,3],[3,1]
+      If this condition is satisfied, it is no longer possible to go on with this snake.
+      Even after emptying the stock, no player will have the necessary piece.
+      Essentially, the game has come to a permanent stop, so we have a draw.
+    """
+    if len(players[next_player]) == 0:
+        winner = 'The computer won' if next_player == COMPUTER else 'You won'
+        print(f'Status: The game is over. {winner}!')
+        return True
+
+    if snake[0][0] == snake[-1][-1] and \
+            sum(num == snake[0][0] for piece in snake for num in piece) == END_GAME_COUNTER:
+        print("Status: The game is over. It's a draw!")
+        return True
+    return False
 
 
 def play():
@@ -128,16 +156,21 @@ def play():
     Domino piece is double if the two numbers written on it are equal
     If no one has a double domino, the pieces are reshuffled and redistributed.
     """
+    global stock
     while True:
         stock = generate_domino_set()
-        players = {COMPUTER: draw(stock),
-                   HUMAN: draw(stock)}
+        players = {COMPUTER: draw(), HUMAN: draw()}
         if has_double_dominoes(players[COMPUTER]) or has_double_dominoes(players[HUMAN]):
             break
+
     next_player = start(players)
-    print_status(stock, players, next_player)
-    next_player = humans_turn(players[HUMAN])
-    print_status(stock, players, next_player)
+
+    while True:
+        print_status(players)
+        next_player = move(next_player, players[next_player])
+
+        if end_game(players, next_player):
+            break
 
 
 if __name__ == '__main__':
