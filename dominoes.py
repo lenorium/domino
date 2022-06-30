@@ -85,11 +85,11 @@ def move(player: str, dominoes: list):
                 continue
 
             chosen_piece = dominoes[index]
-            if not is_correct_domino(chosen_piece):
+            if is_correct_domino(chosen_piece):
+                break
+            else:
                 print('Illegal move. Please try again.')
                 continue
-            else:
-                break
 
     left_side = False
     if chosen_piece is not None:
