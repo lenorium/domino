@@ -62,8 +62,17 @@ def has_double_dominoes(domino_set):
 def move(player: str, dominoes: list):
     if player == COMPUTER:
         input('Status: Computer is about to make a move. Press Enter to continue...\n')
-        piece = random.choice(dominoes)
-        update_dominoes_sets(dominoes, piece)
+        skip_index = -1
+        index = skip_index
+        chosen_piece = None
+        for piece in dominoes:
+            if is_correct_domino(piece):
+                chosen_piece = piece
+                index = dominoes.index(piece)
+                break
+        if index != skip_index:
+            index = reverse_domino(chosen_piece, index)
+        update_dominoes_sets(dominoes, chosen_piece, index == skip_index, index < 0)
         return HUMAN
     if player == HUMAN:
         print("Status: It's your turn to make a move. Enter your command.")
@@ -121,7 +130,7 @@ def update_dominoes_sets(player_set, piece, skip=False, left_side=False):
         skip a turn or simply skip a turn if the stock is already empty by this point.
     """
     if skip:
-        if len(snake) != 0:
+        if len(stock) != 0:
             index = random.choice(stock)
             player_set.append(index)
             stock.remove(index)
