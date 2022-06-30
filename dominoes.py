@@ -66,21 +66,47 @@ def move(player: str, dominoes: list):
         update_dominoes_sets(dominoes, piece)
         return HUMAN
     if player == HUMAN:
+        print("Status: It's your turn to make a move. Enter your command.")
         while True:
             try:
-                index = int(input("Status: It's your turn to make a move. Enter your command.\n"))
+                index = int(input())
             except ValueError:
                 print('Invalid input. Please try again.')
                 continue
 
-            if abs(index) > len(dominoes):
+            if abs(int(index)) > len(dominoes):
                 print('Invalid input. Please try again.')
                 continue
 
-            update_dominoes_sets(dominoes, dominoes[abs(index) - 1], index == 0, index < 0)
+            index = int(index)
+            chosen_piece = dominoes[abs(index) - 1]
+            if index != 0 and not is_correct_domino(chosen_piece):
+                print('Illegal move. Please try again.')
+                continue
+
+            index = reverse_domino(chosen_piece, abs(index))
+            update_dominoes_sets(dominoes, chosen_piece, index == 0, index < 0)
 
             break
         return COMPUTER
+
+
+def is_correct_domino(piece):
+    return any(num == snake[0][0] or num == snake[-1][-1] for num in piece)
+
+
+def reverse_domino(piece: list, index):
+    if piece[0] == snake[-1][-1]:
+        return index
+    elif piece[-1] == snake[0][0]:
+        return index * -1
+    elif piece[-1] == snake[-1][-1]:
+        piece.reverse()
+        return index
+    elif piece[0] == snake[0][0]:
+        piece.reverse()
+        return index * -1
+    return index
 
 
 def update_dominoes_sets(player_set, piece, skip=False, left_side=False):
@@ -166,11 +192,11 @@ def play():
     next_player = start(players)
 
     while True:
-        print_status(players)
-        next_player = move(next_player, players[next_player])
-
         if end_game(players, next_player):
             break
+
+        print_status(players)
+        next_player = move(next_player, players[next_player])
 
 
 if __name__ == '__main__':
