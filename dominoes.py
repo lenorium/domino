@@ -2,16 +2,23 @@ import random
 
 MIN_WEIGHT = 0
 MAX_WEIGHT = 6
-PIECES_PER_PLAYER = 7
+TILES_PER_PLAYER = 7
 END_GAME_COUNTER = 8
 COMPUTER = 'computer'
 HUMAN = 'human'
+
+MSG_COMPUTERS_TURN = 'Status: Computer is about to make a move. Press Enter to continue...\n'
+MSG_HUMANS_TURN = "Status: It's your turn to make a move. Enter your command."
+MSG_GAME_OVER_DRAW = "Status: The game is over. It's a draw!"
+MSG_GAME_OVER_WIN = 'Status: The game is over. {0} won!'
+MSG_INVALID_INPUT = 'Invalid input. Please try again.'
+MSG_ILLEGAL_MOVE = 'Illegal move. Please try again.'
 
 snake = []
 stock = []
 
 
-def generate_domino_set():
+def prepare_stock():
     for i in range(MIN_WEIGHT, MAX_WEIGHT + 1):
         for j in range(i, MAX_WEIGHT + 1):
             stock.append([i, j])
@@ -20,60 +27,59 @@ def generate_domino_set():
 
 
 def draw():
-    reserved = random.sample(stock, PIECES_PER_PLAYER)
-    for piece in reserved:
-        stock.remove(piece)
+    reserved = random.sample(stock, TILES_PER_PLAYER)
+    for tile in reserved:
+        stock.remove(tile)
     return reserved
 
 
 def start(players):
     """
-    To start the game, players determine the starting piece.
+    To start the game, players determine the starting tile.
     The player with the highest double ([6,6] or [5,5] for example)
-    will donate that domino as a starting piece for the game.
+    will donate that domino as a starting tile for the game.
     After doing so, their opponent will start the game by going first.
     """
     computer = players[COMPUTER]
     human = players[HUMAN]
 
-    max_computer_double = find_max_double_domino(computer)
-    max_human_double = find_max_double_domino(human)
+    max_computer_double = find_max_double(computer)
+    max_human_double = find_max_double(human)
 
     if max_computer_double > max_human_double:
-        update_dominoes_sets(computer, max_computer_double)
+        update(computer, max_computer_double)
         return HUMAN
     else:
-        update_dominoes_sets(human, max_human_double)
+        update(human, max_human_double)
         return COMPUTER
 
 
-def find_max_double_domino(pieces):
+def find_max_double(tiles):
     doubles = []
-    for piece in pieces:
-        if piece[0] == piece[1]:
-            doubles.append(piece)
+    for tile in tiles:
+        if tile[0] == tile[1]:
+            doubles.append(tile)
     return [] if len(doubles) == 0 else max(doubles)
 
 
-def has_double_dominoes(domino_set):
-    return any(piece[0] == piece[1] for piece in domino_set)
+def has_doubles(domino_set):
+    return any(tile[0] == tile[1] for tile in domino_set)
 
 
 def move(player: str, dominoes: list):
-    chosen_piece = None
+    chosen_tile = None
     if player == COMPUTER:
         next_player = HUMAN
-        input('Status: Computer is about to make a move. Press Enter to continue...\n')
-        chosen_piece = next(filter(is_correct_domino, dominoes), None)
+        input(MSG_COMPUTERS_TURN)
+        chosen_tile = next(filter(is_correct_tile, dominoes), None)
     else:
         next_player = COMPUTER
-
-        print("Status: It's your turn to make a move. Enter your command.")
+        print(MSG_HUMANS_TURN)
         while True:
             try:
                 index = abs(int(input())) - 1
             except ValueError:
-                print('Invalid input. Please try again.')
+                print(MSG_INVALID_INPUT)
                 continue
 
             # if index == -1 then skip a turn
@@ -81,40 +87,40 @@ def move(player: str, dominoes: list):
                 break
 
             if index >= len(dominoes):
-                print('Invalid input. Please try again.')
+                print(MSG_INVALID_INPUT)
                 continue
 
-            chosen_piece = dominoes[index]
-            if is_correct_domino(chosen_piece):
+            chosen_tile = dominoes[index]
+            if is_correct_tile(chosen_tile):
                 break
             else:
-                print('Illegal move. Please try again.')
+                print(MSG_ILLEGAL_MOVE)
                 continue
 
     left_side = False
-    if chosen_piece is not None:
-        left_side = set_to_left_side(chosen_piece)
-        reverse_domino(chosen_piece, left_side)
-    update_dominoes_sets(dominoes, chosen_piece, left_side)
+    if chosen_tile is not None:
+        left_side = is_to_left_side(chosen_tile)
+        reverse_tile(chosen_tile, left_side)
+    update(dominoes, chosen_tile, left_side)
     return next_player
 
 
-def set_to_left_side(piece):
-    return snake[-1][-1] not in piece
+def is_to_left_side(tile):
+    return snake[-1][-1] not in tile
 
 
-def is_correct_domino(piece):
-    return any(num == snake[0][0] or num == snake[-1][-1] for num in piece)
+def is_correct_tile(tile):
+    return any(num == snake[0][0] or num == snake[-1][-1] for num in tile)
 
 
-def reverse_domino(piece: list, left_side: bool):
-    if left_side and piece[0] == snake[0][0] or not left_side and piece[-1] == snake[-1][-1]:
-        piece.reverse()
+def reverse_tile(tile: list, left_side: bool):
+    if left_side and tile[0] == snake[0][0] or not left_side and tile[-1] == snake[-1][-1]:
+        tile.reverse()
 
 
-def update_dominoes_sets(player_set, piece=None, left_side=False):
+def update(player_set, tile=None, left_side=False):
     # skip a turn
-    if piece is None:
+    if tile is None:
         if len(stock) != 0:
             index = random.choice(stock)
             player_set.append(index)
@@ -122,10 +128,10 @@ def update_dominoes_sets(player_set, piece=None, left_side=False):
         return
 
     if left_side:
-        snake.insert(0, piece)
+        snake.insert(0, tile)
     else:
-        snake.append(piece)
-    player_set.remove(piece)
+        snake.append(tile)
+    player_set.remove(tile)
 
 
 def print_status(players):
@@ -144,11 +150,11 @@ def print_status(players):
     print()
 
 
-def end_game(players, next_player):
+def is_over(players, winner):
     """
     The end-game condition can be achieved in two ways:
 
-    - One of the players runs out of pieces. The first player to do so is considered a winner.
+    - One of the players runs out of tiles. The first player to do so is considered a winner.
     - The numbers on the ends of the snake are identical and appear within the snake 8 times. 
        For example, the snake below will satisfy this condition:
       [5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5],[5,3],[3,6],[6,5]
@@ -156,39 +162,35 @@ def end_game(players, next_player):
       [5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5]
       [6,5],[5,5],[5,2],[2,1],[1,5],[5,4],[4,0],[0,5],[5,3],[3,1]
       If this condition is satisfied, it is no longer possible to go on with this snake.
-      Even after emptying the stock, no player will have the necessary piece.
+      Even after emptying the stock, no player will have the necessary tile.
       Essentially, the game has come to a permanent stop, so we have a draw.
     """
-    if len(players[next_player]) == 0:
-        winner = 'The computer won' if next_player == COMPUTER else 'You won'
-        print(f'Status: The game is over. {winner}!')
+    if len(players[winner]) == 0:
+        print(MSG_GAME_OVER_WIN.format('The computer' if winner == COMPUTER else 'You'))
         return True
 
     if snake[0][0] == snake[-1][-1] and \
-            sum(num == snake[0][0] for piece in snake for num in piece) == END_GAME_COUNTER:
-        print("Status: The game is over. It's a draw!")
+            sum(num == snake[0][0] for tile in snake for num in tile) == END_GAME_COUNTER:
+        print(MSG_GAME_OVER_DRAW)
         return True
     return False
 
 
 def play():
     """
-    Domino piece is double if the two numbers written on it are equal
-    If no one has a double domino, the pieces are reshuffled and redistributed.
+    Domino tile is double if the two numbers written on it are equal
+    If no one has a double domino, the tiles are reshuffled and redistributed.
     """
     global stock
     while True:
-        stock = generate_domino_set()
+        stock = prepare_stock()
         players = {COMPUTER: draw(), HUMAN: draw()}
-        if has_double_dominoes(players[COMPUTER]) or has_double_dominoes(players[HUMAN]):
+        if has_doubles(players[COMPUTER]) or has_doubles(players[HUMAN]):
             break
 
     next_player = start(players)
 
-    while True:
-        if end_game(players, next_player):
-            break
-
+    while not is_over(players, next_player):
         print_status(players)
         next_player = move(next_player, players[next_player])
 
