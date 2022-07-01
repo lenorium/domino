@@ -2,7 +2,7 @@ import random
 
 MIN_WEIGHT = 0
 MAX_WEIGHT = 6
-tileS_PER_PLAYER = 7
+TILES_PER_PLAYER = 7
 END_GAME_COUNTER = 8
 COMPUTER = 'computer'
 HUMAN = 'human'
@@ -27,7 +27,7 @@ def prepare_stock():
 
 
 def draw():
-    reserved = random.sample(stock, tileS_PER_PLAYER)
+    reserved = random.sample(stock, TILES_PER_PLAYER)
     for tile in reserved:
         stock.remove(tile)
     return reserved
