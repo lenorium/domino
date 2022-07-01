@@ -60,42 +60,62 @@ def has_double_dominoes(domino_set):
 
 
 def move(player: str, dominoes: list):
+    chosen_piece = None
     if player == COMPUTER:
+        next_player = HUMAN
         input('Status: Computer is about to make a move. Press Enter to continue...\n')
-        piece = random.choice(dominoes)
-        update_dominoes_sets(dominoes, piece)
-        return HUMAN
-    if player == HUMAN:
+        chosen_piece = next(filter(is_correct_domino, dominoes), None)
+    else:
+        next_player = COMPUTER
+
+        print("Status: It's your turn to make a move. Enter your command.")
         while True:
             try:
-                index = int(input("Status: It's your turn to make a move. Enter your command.\n"))
+                index = abs(int(input())) - 1
             except ValueError:
                 print('Invalid input. Please try again.')
                 continue
 
-            if abs(index) > len(dominoes):
+            # if index == -1 then skip a turn
+            if index == -1:
+                break
+
+            if index >= len(dominoes):
                 print('Invalid input. Please try again.')
                 continue
 
-            update_dominoes_sets(dominoes, dominoes[abs(index) - 1], index == 0, index < 0)
+            chosen_piece = dominoes[index]
+            if is_correct_domino(chosen_piece):
+                break
+            else:
+                print('Illegal move. Please try again.')
+                continue
 
-            break
-        return COMPUTER
+    left_side = False
+    if chosen_piece is not None:
+        left_side = set_to_left_side(chosen_piece)
+        reverse_domino(chosen_piece, left_side)
+    update_dominoes_sets(dominoes, chosen_piece, left_side)
+    return next_player
 
 
-def update_dominoes_sets(player_set, piece, skip=False, left_side=False):
-    """
-    To make a move, the player has to specify the action they want to take.
-    In this project, the actions are represented by integer numbers in the following manner:
-    {side_of_the_snake (+/-), domino_number (integer)} or {0}.
-    For example:
-        -6 : Take the sixth domino and place it on the left side of the snake.
-        6 : Take the sixth domino and place it on the right side of the snake.
-        0 : Take an extra piece from the stock (if it's not empty) and
-        skip a turn or simply skip a turn if the stock is already empty by this point.
-    """
-    if skip:
-        if len(snake) != 0:
+def set_to_left_side(piece):
+    return snake[-1][-1] not in piece
+
+
+def is_correct_domino(piece):
+    return any(num == snake[0][0] or num == snake[-1][-1] for num in piece)
+
+
+def reverse_domino(piece: list, left_side: bool):
+    if left_side and piece[0] == snake[0][0] or not left_side and piece[-1] == snake[-1][-1]:
+        piece.reverse()
+
+
+def update_dominoes_sets(player_set, piece=None, left_side=False):
+    # skip a turn
+    if piece is None:
+        if len(stock) != 0:
             index = random.choice(stock)
             player_set.append(index)
             stock.remove(index)
@@ -166,11 +186,11 @@ def play():
     next_player = start(players)
 
     while True:
-        print_status(players)
-        next_player = move(next_player, players[next_player])
-
         if end_game(players, next_player):
             break
+
+        print_status(players)
+        next_player = move(next_player, players[next_player])
 
 
 if __name__ == '__main__':
