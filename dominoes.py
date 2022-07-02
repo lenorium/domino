@@ -55,11 +55,8 @@ def start(players):
 
 
 def find_max_double(tiles):
-    doubles = []
-    for tile in tiles:
-        if tile[0] == tile[1]:
-            doubles.append(tile)
-    return [] if len(doubles) == 0 else max(doubles)
+    doubles = list(tile for tile in tiles if tile[0] == tile[1])
+    return max(doubles, default=[])
 
 
 def has_doubles(domino_set):
@@ -71,7 +68,14 @@ def move(player: str, dominoes: list):
     if player == COMPUTER:
         next_player = HUMAN
         input(MSG_COMPUTERS_TURN)
-        chosen_tile = next(filter(is_correct_tile, dominoes), None)
+        matching = get_matching_tiles(dominoes)
+        if len(matching) == 1:
+            chosen_tile = matching[0]
+        elif len(matching) > 1:
+            scores = get_score_per_num(matching)
+            score_per_tile = get_score_per_tile(scores, matching)
+            max_tile_index = max_score_tile(score_per_tile)
+            chosen_tile = dominoes[max_tile_index]
     else:
         next_player = COMPUTER
         print(MSG_HUMANS_TURN)
@@ -105,8 +109,37 @@ def move(player: str, dominoes: list):
     return next_player
 
 
+def get_score_per_num(tiles):
+    score = {i: 0 for i in range(MAX_WEIGHT + 1)}
+    get_score_by_set(tiles, score)
+    get_score_by_set(snake, score)
+    return score
+
+
+def get_score_per_tile(scores: dict, tiles):
+    scores_by_tiles = {i: 0 for i in range(len(tiles))}
+    for i in range(len(tiles)):
+        for num in tiles[i]:
+            scores_by_tiles[i] += scores.get(num)
+    return scores_by_tiles
+
+
+def max_score_tile(scores_by_tile):
+    return max(scores_by_tile, key=scores_by_tile.get)
+
+
+def get_score_by_set(tiles, score):
+    for tile in tiles:
+        for num in tile:
+            score[num] += 1
+
+
 def is_to_left_side(tile):
     return snake[-1][-1] not in tile
+
+
+def get_matching_tiles(tiles):
+    return list(filter(is_correct_tile, tiles))
 
 
 def is_correct_tile(tile):
@@ -137,7 +170,6 @@ def update(player_set, tile=None, left_side=False):
 def print_status(players):
     print('=' * 70)
     print(f'Stock size: {len(stock)}')
-    # print(f'Stock size: {stock}')
     print(f'Computer pieces: {len(players[COMPUTER])}\n')
     # print(f'Computer pieces: {players[COMPUTER]}\n')
     if len(snake) > 6:
@@ -150,7 +182,7 @@ def print_status(players):
     print()
 
 
-def is_over(players, winner):
+def is_over(players, player):
     """
     The end-game condition can be achieved in two ways:
 
@@ -165,8 +197,16 @@ def is_over(players, winner):
       Even after emptying the stock, no player will have the necessary tile.
       Essentially, the game has come to a permanent stop, so we have a draw.
     """
-    if len(players[winner]) == 0:
-        print(MSG_GAME_OVER_WIN.format('The computer' if winner == COMPUTER else 'You'))
+    opponent = HUMAN if player == COMPUTER else COMPUTER
+    if len(players[player]) > 0 \
+            and len(get_matching_tiles(players[player])) == 0 \
+            and len(stock) == 0 \
+            and len(get_matching_tiles(players[opponent])) == 0:
+        print(MSG_GAME_OVER_DRAW)
+        return True
+
+    if len(players[player]) == 0:
+        print(MSG_GAME_OVER_WIN.format('The computer' if player == COMPUTER else 'You'))
         return True
 
     if snake[0][0] == snake[-1][-1] and \
@@ -185,6 +225,7 @@ def play():
     while True:
         stock = prepare_stock()
         players = {COMPUTER: draw(), HUMAN: draw()}
+
         if has_doubles(players[COMPUTER]) or has_doubles(players[HUMAN]):
             break
 
