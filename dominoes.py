@@ -56,7 +56,7 @@ def start(players):
 
 def find_max_double(tiles):
     doubles = list(tile for tile in tiles if tile[0] == tile[1])
-    return max(doubles, [])
+    return max(doubles, default=[])
 
 
 def has_doubles(domino_set):
