@@ -55,11 +55,8 @@ def start(players):
 
 
 def find_max_double(tiles):
-    doubles = []
-    for tile in tiles:
-        if tile[0] == tile[1]:
-            doubles.append(tile)
-    return [] if len(doubles) == 0 else max(doubles)
+    doubles = list(tile for tile in tiles if tile[0] == tile[1])
+    return max(doubles, [])
 
 
 def has_doubles(domino_set):
@@ -114,8 +111,8 @@ def move(player: str, dominoes: list):
 
 def get_score_per_num(tiles):
     score = {i: 0 for i in range(MAX_WEIGHT + 1)}
-    score = get_score_by_set(tiles, score)
-    score = get_score_by_set(snake, score)
+    get_score_by_set(tiles, score)
+    get_score_by_set(snake, score)
     return score
 
 
@@ -135,7 +132,6 @@ def get_score_by_set(tiles, score):
     for tile in tiles:
         for num in tile:
             score[num] += 1
-    return score
 
 
 def is_to_left_side(tile):
