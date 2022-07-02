@@ -4,8 +4,7 @@ MIN_WEIGHT = 0
 MAX_WEIGHT = 6
 TILES_PER_PLAYER = 7
 END_GAME_COUNTER = 8
-COMPUTER = 'computer'
-HUMAN = 'human'
+IS_HUMAN = True
 
 MSG_COMPUTERS_TURN = 'Status: Computer is about to make a move. Press Enter to continue...\n'
 MSG_HUMANS_TURN = "Status: It's your turn to make a move. Enter your command."
@@ -40,44 +39,26 @@ def start(players):
     will donate that domino as a starting tile for the game.
     After doing so, their opponent will start the game by going first.
     """
-    computer = players[COMPUTER]
-    human = players[HUMAN]
+    max_doubles = {not IS_HUMAN: find_max_double(players[not IS_HUMAN]),
+                   IS_HUMAN: find_max_double(players[IS_HUMAN])}
 
-    max_computer_double = find_max_double(computer)
-    max_human_double = find_max_double(human)
-
-    if max_computer_double > max_human_double:
-        update(computer, max_computer_double)
-        return HUMAN
-    else:
-        update(human, max_human_double)
-        return COMPUTER
+    start_player = max(max_doubles, key=max_doubles.get)
+    update(players[start_player], max_doubles[start_player])
+    return not start_player
 
 
 def find_max_double(tiles):
     doubles = list(tile for tile in tiles if tile[0] == tile[1])
-    return max(doubles, [])
+    return max(doubles, default=[])
 
 
 def has_doubles(domino_set):
     return any(tile[0] == tile[1] for tile in domino_set)
 
 
-def move(player: str, dominoes: list):
+def move(player: bool, dominoes: list):
     chosen_tile = None
-    if player == COMPUTER:
-        next_player = HUMAN
-        input(MSG_COMPUTERS_TURN)
-        matching = get_matching_tiles(dominoes)
-        if len(matching) == 1:
-            chosen_tile = matching[0]
-        elif len(matching) > 1:
-            scores = get_score_per_num(matching)
-            score_per_tile = get_score_per_tile(scores, matching)
-            max_tile_index = max_score_tile(score_per_tile)
-            chosen_tile = dominoes[max_tile_index]
-    else:
-        next_player = COMPUTER
+    if player == IS_HUMAN:
         print(MSG_HUMANS_TURN)
         while True:
             try:
@@ -100,13 +81,23 @@ def move(player: str, dominoes: list):
             else:
                 print(MSG_ILLEGAL_MOVE)
                 continue
+    else:
+        input(MSG_COMPUTERS_TURN)
+        matching = get_matching_tiles(dominoes)
+        if len(matching) == 1:
+            chosen_tile = matching[0]
+        elif len(matching) > 1:
+            scores = get_score_per_num(matching)
+            score_per_tile = get_score_per_tile(scores, matching)
+            max_tile_index = max_score_tile(score_per_tile)
+            chosen_tile = dominoes[max_tile_index]
 
     left_side = False
     if chosen_tile is not None:
         left_side = is_to_left_side(chosen_tile)
         reverse_tile(chosen_tile, left_side)
     update(dominoes, chosen_tile, left_side)
-    return next_player
+    return not player
 
 
 def get_score_per_num(tiles):
@@ -170,14 +161,14 @@ def update(player_set, tile=None, left_side=False):
 def print_status(players):
     print('=' * 70)
     print(f'Stock size: {len(stock)}')
-    print(f'Computer pieces: {len(players[COMPUTER])}\n')
+    print(f'Computer pieces: {len(players[not IS_HUMAN])}\n')
     # print(f'Computer pieces: {players[COMPUTER]}\n')
     if len(snake) > 6:
         print(*snake[:3], '...', *snake[-3:])
     else:
         print(*snake)
     print(f'\nYour pieces:')
-    for i, p in enumerate(players[HUMAN]):
+    for i, p in enumerate(players[IS_HUMAN]):
         print(f'{i + 1}: {p}')
     print()
 
@@ -197,16 +188,15 @@ def is_over(players, player):
       Even after emptying the stock, no player will have the necessary tile.
       Essentially, the game has come to a permanent stop, so we have a draw.
     """
-    opponent = HUMAN if player == COMPUTER else COMPUTER
     if len(players[player]) > 0 \
             and len(get_matching_tiles(players[player])) == 0 \
             and len(stock) == 0 \
-            and len(get_matching_tiles(players[opponent])) == 0:
+            and len(get_matching_tiles(players[not player])) == 0:
         print(MSG_GAME_OVER_DRAW)
         return True
 
     if len(players[player]) == 0:
-        print(MSG_GAME_OVER_WIN.format('The computer' if player == COMPUTER else 'You'))
+        print(MSG_GAME_OVER_WIN.format('You' if player == IS_HUMAN else 'The computer'))
         return True
 
     if snake[0][0] == snake[-1][-1] and \
@@ -224,9 +214,9 @@ def play():
     global stock
     while True:
         stock = prepare_stock()
-        players = {COMPUTER: draw(), HUMAN: draw()}
+        players = {not IS_HUMAN: draw(), IS_HUMAN: draw()}
 
-        if has_doubles(players[COMPUTER]) or has_doubles(players[HUMAN]):
+        if has_doubles(players[not IS_HUMAN]) or has_doubles(players[IS_HUMAN]):
             break
 
     next_player = start(players)
