@@ -58,7 +58,7 @@ def has_doubles(domino_set):
 
 def move(player: bool, dominoes: list):
     chosen_tile = None
-    if player == IS_HUMAN:
+    if player:
         print(MSG_HUMANS_TURN)
         while True:
             try:
@@ -196,7 +196,7 @@ def is_over(players, player):
         return True
 
     if len(players[player]) == 0:
-        print(MSG_GAME_OVER_WIN.format('You' if player == IS_HUMAN else 'The computer'))
+        print(MSG_GAME_OVER_WIN.format('You' if player else 'The computer'))
         return True
 
     if snake[0][0] == snake[-1][-1] and \
